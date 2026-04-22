@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function PriceVisual({ data }) {
+export default function PriceVisual({ data, accountSize = 25000 }) {
   const { direction, currentPrice, target, stopLoss, confidence, reason, conditions } = data;
   const isBull = direction === 'bullish';
   const accent = isBull ? '#00d4aa' : '#ff4757';
@@ -10,6 +10,13 @@ export default function PriceVisual({ data }) {
   const rr = Math.abs(slDiff) > 0 ? (Math.abs(priceDiff) / Math.abs(slDiff)).toFixed(2) : '?';
   const rrNum = parseFloat(rr);
   const rrColor = rrNum >= 2 ? '#00d4aa' : rrNum >= 1 ? '#ffa502' : '#ff4757';
+
+  const riskAmount = accountSize * 0.01;
+  const slDistance = Math.abs(currentPrice - stopLoss);
+  const contractsEstimate = slDistance > 0 ? Math.floor(riskAmount / slDistance) : 0;
+  const entryPrice = data.entryTrigger || currentPrice;
+  const dollarProfit = (Math.abs(target - entryPrice) * contractsEstimate).toFixed(2);
+  const dollarLoss = (slDistance * contractsEstimate).toFixed(2);
 
   const checklist = conditions || [
     { label: 'Daily Bias Confirmed (4H + 1H)', met: true },
@@ -111,6 +118,23 @@ export default function PriceVisual({ data }) {
               ⚠ R:R below 1:2 — TJR would wait for better entry
             </div>
           )}
+
+          {/* Profit Calculator */}
+          <div style={{ borderTop: '1px solid #21262d', marginTop: 10, paddingTop: 10 }}>
+            <div style={{ fontSize: 10, color: '#8b949e', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1, marginBottom: 8 }}>
+              PROFIT CALC — ${accountSize.toLocaleString()} ACCOUNT
+            </div>
+            {[
+              { label: '1% RISK', value: '$' + riskAmount.toLocaleString() },
+              { label: 'EST PROFIT', value: '$' + Number(dollarProfit).toLocaleString(), color: accent },
+              { label: 'MAX LOSS', value: '$' + Number(dollarLoss).toLocaleString(), color: '#ff4757' },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: '#8b949e', fontFamily: "'IBM Plex Mono', monospace" }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: color || '#e6edf3', fontFamily: "'IBM Plex Mono', monospace" }}>{value}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Right: mini candlestick chart */}
@@ -171,6 +195,23 @@ export default function PriceVisual({ data }) {
           ))}
         </div>
       </div>
+
+      {/* Trade Plan */}
+      {(data.entryTrigger || data.invalidation || data.checkBackIn) && (
+        <div style={{ borderTop: '1px solid #21262d', padding: '12px 16px' }}>
+          <div style={{ fontSize: 10, color: '#8b949e', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1, marginBottom: 10 }}>TRADE PLAN</div>
+          {[
+            { label: '⏳ WAIT FOR PRICE TO HIT', value: data.entryTrigger, color: '#ffa502' },
+            { label: '✕ INVALIDATED IF PRICE HITS', value: data.invalidation, color: '#ff4757' },
+            { label: '🕐 CHECK BACK', value: data.checkBackIn, color: '#8b949e', isText: true },
+          ].filter(({ value }) => value !== undefined && value !== null && value !== 0).map(({ label, value, color, isText }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 11, color: '#8b949e' }}>{label}</span>
+              <span style={{ fontSize: isText ? 11 : 14, fontWeight: 600, color, fontFamily: "'IBM Plex Mono', monospace" }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Reason */}
       <div style={{

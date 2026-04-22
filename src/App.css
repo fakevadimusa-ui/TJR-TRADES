@@ -465,3 +465,45 @@ body {
 .modal button:hover {
   opacity: 0.85;
 }
+
+.followup-btn {
+  width: 100%;
+  background: #ffa50215;
+  border: 1px solid #ffa502;
+  color: #ffa502;
+  padding: 10px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+
+.followup-btn:hover { background: #ffa50230; }
+
+.followup-banner {
+  width: 100%;
+  background: #ffa50215;
+  border: 1px solid #ffa502;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #ffa502;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+.followup-banner button {
+  background: transparent;
+  border: none;
+  color: #ffa502;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}

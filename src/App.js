@@ -25,6 +25,12 @@ RULES:
 - Talk direct and confident, no fluff
 - Never overcomplicate
 
+TRADE PLAN REQUIREMENTS:
+After your checklist and verdict, always provide:
+- WAIT FOR: The exact price level price needs to hit before entering. Example: 'Wait for price to retrace to 6620 bearish OB before shorting'
+- CHECK BACK: When to re-evaluate. Example: 'Check back in 2-4 hours' or 'Check back at NY open'
+- INVALIDATION: What price level completely invalidates this setup
+
 When analyzing charts, end your response with a JSON block like this:
 \`\`\`json
 {
@@ -32,6 +38,9 @@ When analyzing charts, end your response with a JSON block like this:
   "currentPrice": 0,
   "target": 0,
   "stopLoss": 0,
+  "entryTrigger": 0,
+  "invalidation": 0,
+  "checkBackIn": "e.g. 2-4 hours or NY open",
   "confidence": "HIGH or MEDIUM or LOW",
   "reason": "one sentence explanation",
   "conditions": [
@@ -76,6 +85,9 @@ function App() {
   const [chartPreviews, setChartPreviews] = useState({ h4: null, h1: null, m5: null });
   const [activeSlot, setActiveSlot] = useState(null);
   const [time, setTime] = useState('');
+  const [accountSize] = useState(25000);
+  const [activePlan, setActivePlan] = useState(null);
+  const [followUpMode, setFollowUpMode] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -136,7 +148,9 @@ function App() {
         source: { type: 'base64', media_type: 'image/png', data: b64 },
       }));
 
-    const defaultAnalysis = 'Run TJR full checklist on all 3 timeframes. Give TAKE TRADE or SKIP verdict with confidence level. Describe where price is likely to go and why. End with a JSON block as instructed in the system prompt.';
+    const defaultAnalysis = followUpMode && activePlan
+      ? 'Follow-up check on existing trade plan. Original plan: ' + JSON.stringify(activePlan) + '. New 5min chart attached. Tell me: 1. Is the setup still valid or invalidated? 2. Has price hit the entry trigger of ' + activePlan.entryTrigger + '? 3. What should I do right now — ENTER, WAIT, or EXIT? Then provide updated JSON with same format.'
+      : 'Run TJR full checklist on all 3 timeframes. Give TAKE TRADE or SKIP verdict with confidence level. Describe where price is likely to go and why. End with a JSON block as instructed in the system prompt.';
     const labelBlock = {
       type: 'text',
       text: 'Chart order: 4H first, 1H second, 5min third. ' + (userText || defaultAnalysis),
@@ -178,7 +192,11 @@ function App() {
       }
 
       const data = await response.json();
-      const aiMsg = { role: 'assistant', content: data.content[0].text };
+      const reply = data.content[0].text;
+      const aiMsg = { role: 'assistant', content: reply };
+      const visualData = extractVisual(reply);
+      if (visualData) setActivePlan(visualData);
+      if (followUpMode) setFollowUpMode(false);
       setMessages([...newMessages, aiMsg]);
     } catch (err) {
       setMessages([
@@ -259,7 +277,7 @@ function App() {
                 </div>
                 {m.role === 'assistant' && (() => {
                   const visual = extractVisual(typeof m.content === 'string' ? m.content : '');
-                  return visual ? <PriceVisual data={visual} /> : null;
+                  return visual ? <PriceVisual data={visual} accountSize={accountSize} /> : null;
                 })()}
               </div>
             ))}
@@ -279,6 +297,17 @@ function App() {
       </main>
 
       <footer className="input-bar">
+        {activePlan && !followUpMode && (
+          <button className="followup-btn" onClick={() => setFollowUpMode(true)}>
+            📍 Check Up On Trade Plan
+          </button>
+        )}
+        {followUpMode && (
+          <div className="followup-banner">
+            <span>📍 FOLLOW-UP MODE — Paste new 5min chart only. Brain will check if setup still valid.</span>
+            <button onClick={() => setFollowUpMode(false)}>✕ Cancel</button>
+          </div>
+        )}
         <div className="chart-slots">
           {CHART_SLOTS.map(({ key, label }) => (
             <div
