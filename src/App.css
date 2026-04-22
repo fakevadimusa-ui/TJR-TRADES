@@ -1,19 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
   --bg: #080a0e;
   --bg2: #0d1117;
   --bg3: #161b22;
   --border: #21262d;
-  --accent: #00ff88;
+  --accent: #00d4aa;
+  --accent2: #00b894;
+  --red: #ff4757;
+  --yellow: #ffa502;
   --text: #e6edf3;
   --muted: #8b949e;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body);
   height: 100vh;
   overflow: hidden;
 }
@@ -36,25 +41,36 @@ body {
 }
 
 .logo {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
+  font-size: 14px;
   font-weight: 700;
-  font-size: 13px;
-  color: #000;
   background: var(--accent);
-  padding: 4px 8px;
-  letter-spacing: 1px;
+  color: #000;
+  padding: 5px 10px;
+  border-radius: 3px;
+  letter-spacing: 2px;
 }
 
 .header-title {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--muted);
   letter-spacing: 1px;
   flex: 1;
 }
 
+.live-clock {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 .clear-btn {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   background: transparent;
   border: 1px solid var(--border);
@@ -98,17 +114,18 @@ body {
 }
 
 .empty-logo {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 32px;
   color: #000;
   background: var(--accent);
   padding: 10px 18px;
   letter-spacing: 2px;
+  border-radius: 3px;
 }
 
 .empty-tagline {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--muted);
   letter-spacing: 2px;
@@ -129,11 +146,12 @@ body {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 12px 16px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.2s, background 0.2s;
+  border-radius: 4px;
 }
 
 .quick-btn:hover {
@@ -167,7 +185,7 @@ body {
 }
 
 .msg-label {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--muted);
   letter-spacing: 1px;
@@ -186,12 +204,14 @@ body {
   background: #1a2332;
   border: 1px solid #2d3a4a;
   color: var(--text);
+  border-radius: 6px 2px 6px 6px;
 }
 
 .msg--assistant .msg-text {
   background: #0d1f12;
   border: 1px solid #1a3a22;
   color: var(--text);
+  border-radius: 2px 6px 6px 6px;
 }
 
 /* Typing indicator */
@@ -202,6 +222,7 @@ body {
   padding: 16px;
   background: #0d1f12;
   border: 1px solid #1a3a22;
+  border-radius: 2px 6px 6px 6px;
 }
 
 .typing span {
@@ -259,8 +280,8 @@ body {
 .chart-slot {
   flex: 1;
   min-height: 90px;
-  border: 1px dashed #21262d;
-  border-radius: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -269,42 +290,42 @@ body {
   position: relative;
   transition: all 0.2s;
   overflow: hidden;
-  background: #0d1117;
+  background: var(--bg2);
   gap: 4px;
 }
 
-.chart-slot:hover { border-color: #8b949e; }
-.chart-slot.active { border-color: #00ff88; border-style: solid; background: #0d1f12; }
-.chart-slot.filled { border-style: solid; border-color: #00ff8844; }
+.chart-slot:hover { border-color: var(--muted); }
+.chart-slot.active { border-color: var(--accent); border-style: solid; background: #0a1f18; }
+.chart-slot.filled { border-style: solid; border-color: var(--accent2); }
 
 .chart-slot img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 9px;
+  border-radius: 5px;
   position: absolute;
   top: 0;
   left: 0;
 }
 
-.slot-icon { font-size: 20px; }
+.slot-icon { font-size: 18px; }
 
 .slot-label {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  color: #00ff88;
+  color: var(--accent);
   letter-spacing: 1px;
   z-index: 1;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .slot-hint {
   font-size: 10px;
-  color: #8b949e;
-  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  font-family: var(--font-mono);
 }
 
 .slot-upload {
@@ -318,7 +339,7 @@ body {
   background: var(--bg3);
   border: 1px solid var(--border);
   color: var(--text);
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   padding: 12px 14px;
   resize: none;
@@ -328,6 +349,7 @@ body {
   overflow-y: auto;
   line-height: 1.5;
   transition: border-color 0.2s;
+  border-radius: 4px;
 }
 
 .input-bar textarea:focus {
@@ -339,7 +361,7 @@ body {
 }
 
 .send-btn {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   background: var(--accent);
@@ -351,6 +373,7 @@ body {
   transition: opacity 0.2s;
   align-self: flex-end;
   height: 46px;
+  border-radius: 4px;
 }
 
 .send-btn:disabled {
@@ -366,7 +389,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 10, 14, 0.9);
+  background: rgba(8, 10, 14, 0.92);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -382,10 +405,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  border-radius: 8px;
 }
 
 .modal-logo {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 20px;
   color: #000;
@@ -393,10 +417,11 @@ body {
   padding: 6px 12px;
   letter-spacing: 2px;
   width: fit-content;
+  border-radius: 3px;
 }
 
 .modal h2 {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body);
   font-size: 20px;
   font-weight: 700;
 }
@@ -411,11 +436,12 @@ body {
   background: var(--bg2);
   border: 1px solid var(--border);
   color: var(--text);
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   padding: 12px 14px;
   outline: none;
   transition: border-color 0.2s;
+  border-radius: 4px;
 }
 
 .modal input:focus {
@@ -423,7 +449,7 @@ body {
 }
 
 .modal button {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   background: var(--accent);
@@ -433,6 +459,7 @@ body {
   cursor: pointer;
   letter-spacing: 1px;
   transition: opacity 0.2s;
+  border-radius: 4px;
 }
 
 .modal button:hover {

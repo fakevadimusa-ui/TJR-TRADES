@@ -23,7 +23,25 @@ RULES:
 - If info is missing, ask one specific question
 - Max 1-2% risk per trade — always mention this
 - Talk direct and confident, no fluff
-- Never overcomplicate`;
+- Never overcomplicate
+
+When analyzing charts, end your response with a JSON block like this:
+\`\`\`json
+{
+  "direction": "bullish or bearish",
+  "currentPrice": 0,
+  "target": 0,
+  "stopLoss": 0,
+  "confidence": "HIGH or MEDIUM or LOW",
+  "reason": "one sentence explanation",
+  "conditions": [
+    { "label": "Daily Bias Confirmed (4H + 1H)", "met": true },
+    { "label": "Liquidity Sweep Identified", "met": true },
+    { "label": "Order Block or FVG Present", "met": false },
+    { "label": "R:R Minimum 1:2", "met": false }
+  ]
+}
+\`\`\``;
 
 const QUICK_PROMPTS = [
   'How do I identify a valid order block?',
@@ -57,11 +75,19 @@ function App() {
   const [charts, setCharts] = useState({ h4: null, h1: null, m5: null });
   const [chartPreviews, setChartPreviews] = useState({ h4: null, h1: null, m5: null });
   const [activeSlot, setActiveSlot] = useState(null);
+  const [time, setTime] = useState('');
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const saveApiKey = () => {
     if (!modalInput.trim()) return;
@@ -110,7 +136,7 @@ function App() {
         source: { type: 'base64', media_type: 'image/png', data: b64 },
       }));
 
-    const defaultAnalysis = 'Run TJR full checklist on all 3 timeframes. Give TAKE TRADE or SKIP verdict with confidence level. Then describe exactly where price is likely to go, target levels, and why. End your response with a JSON block formatted like this so the UI can render a price visual:\n```json\n{"direction":"bullish","currentPrice":0,"target":0,"stopLoss":0,"confidence":"HIGH","reason":"one sentence"}\n```';
+    const defaultAnalysis = 'Run TJR full checklist on all 3 timeframes. Give TAKE TRADE or SKIP verdict with confidence level. Describe where price is likely to go and why. End with a JSON block as instructed in the system prompt.';
     const labelBlock = {
       type: 'text',
       text: 'Chart order: 4H first, 1H second, 5min third. ' + (userText || defaultAnalysis),
@@ -197,6 +223,7 @@ function App() {
       <header className="header">
         <div className="logo">TJR</div>
         <span className="header-title">Trading Brain</span>
+        <span className="live-clock">{time} EST</span>
         {messages.length > 0 && (
           <button className="clear-btn" onClick={clearChat}>
             Clear
