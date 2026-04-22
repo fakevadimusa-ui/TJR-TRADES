@@ -121,9 +121,14 @@ function App() {
     const imageItem = items.find(i => i.type.startsWith('image/'));
     if (!imageItem) return;
     const file = imageItem.getAsFile();
+    if (!file) return;
     const base64 = await fileToBase64(file);
-    setCharts(prev => ({ ...prev, [activeSlot]: base64 }));
-    setChartPreviews(prev => ({ ...prev, [activeSlot]: URL.createObjectURL(file) }));
+    const preview = URL.createObjectURL(file);
+    setChartPreviews(prev => {
+      if (prev[activeSlot]) URL.revokeObjectURL(prev[activeSlot]);
+      return { ...prev, [activeSlot]: preview };
+    });
+    setCharts(prev => ({ ...prev, [activeSlot]: { data: base64, mime: file.type || 'image/png' } }));
     setActiveSlot(null);
   };
 
@@ -131,8 +136,12 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
     const base64 = await fileToBase64(file);
-    setCharts(prev => ({ ...prev, [slot]: base64 }));
-    setChartPreviews(prev => ({ ...prev, [slot]: URL.createObjectURL(file) }));
+    const preview = URL.createObjectURL(file);
+    setChartPreviews(prev => {
+      if (prev[slot]) URL.revokeObjectURL(prev[slot]);
+      return { ...prev, [slot]: preview };
+    });
+    setCharts(prev => ({ ...prev, [slot]: { data: base64, mime: file.type || 'image/png' } }));
   };
 
   const sendMessage = async (text) => {
@@ -142,10 +151,10 @@ function App() {
     setInput('');
 
     const imageBlocks = Object.entries(charts)
-      .filter(([, b64]) => b64)
-      .map(([, b64]) => ({
+      .filter(([, img]) => img)
+      .map(([, img]) => ({
         type: 'image',
-        source: { type: 'base64', media_type: 'image/png', data: b64 },
+        source: { type: 'base64', media_type: img.mime || 'image/png', data: img.data },
       }));
 
     const defaultAnalysis = followUpMode && activePlan
@@ -156,7 +165,7 @@ function App() {
       text: 'Chart order: 4H first, 1H second, 5min third. ' + (userText || defaultAnalysis),
     };
 
-    const userContent = imageBlocks.length > 0 ? [...imageBlocks, labelBlock] : userText;
+    const userContent = imageBlocks.length > 0 ? [...imageBlocks, labelBlock] : (userText || defaultAnalysis);
     const userMsg = { role: 'user', content: userContent };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -192,6 +201,7 @@ function App() {
       }
 
       const data = await response.json();
+      if (!data.content?.[0]?.text) throw new Error('Empty response from API');
       const reply = data.content[0].text;
       const aiMsg = { role: 'assistant', content: reply };
       const visualData = extractVisual(reply);
@@ -215,7 +225,12 @@ function App() {
     }
   };
 
-  const clearChat = () => setMessages([]);
+  const clearChat = () => {
+    setMessages([]);
+    setActivePlan(null);
+    setFollowUpMode(false);
+    setActiveSlot(null);
+  };
 
   return (
     <div className="app" onPaste={handlePaste}>
@@ -321,7 +336,10 @@ function App() {
                   <button className="remove-img" onClick={(e) => {
                     e.stopPropagation();
                     setCharts(prev => ({ ...prev, [key]: null }));
-                    setChartPreviews(prev => ({ ...prev, [key]: null }));
+                    setChartPreviews(prev => {
+                      if (prev[key]) URL.revokeObjectURL(prev[key]);
+                      return { ...prev, [key]: null };
+                    });
                   }}>✕</button>
                   <span className="slot-label">{label}</span>
                 </>

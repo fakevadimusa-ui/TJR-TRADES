@@ -1,7 +1,10 @@
 import React from 'react';
 
 export default function PriceVisual({ data, accountSize = 25000 }) {
-  const { direction, currentPrice, target, stopLoss, confidence, reason, conditions } = data;
+  if (!data || !data.direction) return null;
+  const { currentPrice = 0, target = 0, stopLoss = 0, reason = '', conditions } = data;
+  const direction = (data.direction || '').toLowerCase();
+  const confidence = (data.confidence || 'LOW').toUpperCase();
   const isBull = direction === 'bullish';
   const accent = isBull ? '#00d4aa' : '#ff4757';
   const arrow = isBull ? '▲' : '▼';
@@ -71,7 +74,7 @@ export default function PriceVisual({ data, accountSize = 25000 }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 22, color: accent }}>{arrow}</span>
           <span style={{ fontSize: 16, fontWeight: 700, color: accent, letterSpacing: 1, fontFamily: "'IBM Plex Mono', monospace" }}>
-            {direction.toUpperCase()}
+            {direction.toUpperCase() || 'UNKNOWN'}
           </span>
         </div>
         <span style={{
