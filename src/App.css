@@ -223,11 +223,62 @@ body {
 /* Input bar */
 .input-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 14px 20px;
   background: var(--bg2);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.image-preview {
+  width: 100%;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.image-preview img {
+  max-height: 160px;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #00ff88;
+  object-fit: contain;
+}
+
+.remove-img {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-btn {
+  background: #161b22;
+  border: 1px solid #21262d;
+  color: #8b949e;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  align-self: flex-end;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.upload-btn:hover {
+  border-color: #00ff88;
+  color: #00ff88;
 }
 
 .input-bar textarea {

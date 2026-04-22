@@ -39,6 +39,8 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingImage, setPendingImage] = useState(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -52,15 +54,49 @@ function App() {
     setShowModal(false);
   };
 
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handlePaste = async (e) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find(i => i.type.startsWith('image/'));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    const base64 = await fileToBase64(file);
+    setPendingImage(base64);
+    setPendingImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const base64 = await fileToBase64(file);
+    setPendingImage(base64);
+    setPendingImagePreview(URL.createObjectURL(file));
+  };
+
   const sendMessage = async (text) => {
     const userText = text || input.trim();
-    if (!userText || isLoading) return;
+    if ((!userText && !pendingImage) || isLoading) return;
     setInput('');
 
-    const userMsg = { role: 'user', content: userText };
+    const userContent = pendingImage
+      ? [
+          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: pendingImage } },
+          { type: 'text', text: userText || "Analyze this chart using TJR's strategy. Where is price most likely to go and why?" },
+        ]
+      : userText;
+
+    const userMsg = { role: 'user', content: userContent };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setIsLoading(true);
+    setPendingImage(null);
+    setPendingImagePreview(null);
 
     const conversationHistory = newMessages.map((m) => ({
       role: m.role,
@@ -112,7 +148,7 @@ function App() {
   const clearChat = () => setMessages([]);
 
   return (
-    <div className="app">
+    <div className="app" onPaste={handlePaste}>
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -159,13 +195,20 @@ function App() {
           <div className="messages">
             {messages.map((m, i) => (
               <div key={i} className={`msg msg--${m.role}`}>
-                <div className="msg-label">{m.role === 'user' ? 'YOU' : 'TJR'}</div>
-                <div className="msg-text">{m.content}</div>
+                <div className="msg-label">{m.role === 'user' ? 'YOU' : 'TJR BRAIN'}</div>
+                <div className="msg-text">
+                  {Array.isArray(m.content)
+                    ? m.content.map((block, j) =>
+                        block.type === 'text' ? <span key={j}>{block.text}</span> :
+                        block.type === 'image' ? <img key={j} src={`data:image/png;base64,${block.source.data}`} alt="chart" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8, display: 'block' }} /> : null
+                      )
+                    : m.content}
+                </div>
               </div>
             ))}
             {isLoading && (
               <div className="msg msg--assistant">
-                <div className="msg-label">TJR</div>
+                <div className="msg-label">TJR BRAIN</div>
                 <div className="typing">
                   <span></span>
                   <span></span>
@@ -179,18 +222,28 @@ function App() {
       </main>
 
       <footer className="input-bar">
+        {pendingImagePreview && (
+          <div className="image-preview">
+            <img src={pendingImagePreview} alt="chart" />
+            <button className="remove-img" onClick={() => { setPendingImage(null); setPendingImagePreview(null); }}>✕</button>
+          </div>
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe your setup — asset, timeframe, bias..."
+          placeholder="Describe your setup — or paste/upload a chart image..."
           rows={1}
           disabled={isLoading}
         />
+        <label className="upload-btn" title="Upload chart image">
+          📎
+          <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+        </label>
         <button
           className="send-btn"
           onClick={() => sendMessage()}
-          disabled={isLoading || !input.trim()}
+          disabled={isLoading || (!input.trim() && !pendingImage)}
         >
           Send
         </button>
