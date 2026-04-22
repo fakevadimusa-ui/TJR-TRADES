@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
+import PriceVisual from './PriceVisual';
 
 const TJR_SYSTEM_PROMPT = `You are the TJR Trading Brain. You think and speak like TJR Trades — a professional day trader who uses simple, systemized ICT price action. Your job is to analyze trade setups and give a clear TAKE TRADE or SKIP verdict.
 
@@ -32,6 +33,20 @@ const QUICK_PROMPTS = [
   'Walk me through a full ICT trade checklist',
 ];
 
+const CHART_SLOTS = [
+  { key: 'h4', label: '4H Chart' },
+  { key: 'h1', label: '1H Chart' },
+  { key: 'm5', label: '5min Chart' },
+];
+
+const extractVisual = (text) => {
+  const match = text.match(/```json\n([\s\S]*?)\n```/);
+  if (!match) return null;
+  try { return JSON.parse(match[1]); } catch { return null; }
+};
+
+const cleanText = (text) => text.replace(/```json\n[\s\S]*?\n```/, '').trim();
+
 function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('tjr_api_key') || '');
   const [showModal, setShowModal] = useState(() => !localStorage.getItem('tjr_api_key'));
@@ -39,8 +54,9 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [pendingImage, setPendingImage] = useState(null);
-  const [pendingImagePreview, setPendingImagePreview] = useState(null);
+  const [charts, setCharts] = useState({ h4: null, h1: null, m5: null });
+  const [chartPreviews, setChartPreviews] = useState({ h4: null, h1: null, m5: null });
+  const [activeSlot, setActiveSlot] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -62,41 +78,51 @@ function App() {
   });
 
   const handlePaste = async (e) => {
+    if (!activeSlot) return;
     const items = Array.from(e.clipboardData.items);
     const imageItem = items.find(i => i.type.startsWith('image/'));
     if (!imageItem) return;
     const file = imageItem.getAsFile();
     const base64 = await fileToBase64(file);
-    setPendingImage(base64);
-    setPendingImagePreview(URL.createObjectURL(file));
+    setCharts(prev => ({ ...prev, [activeSlot]: base64 }));
+    setChartPreviews(prev => ({ ...prev, [activeSlot]: URL.createObjectURL(file) }));
+    setActiveSlot(null);
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e, slot) => {
     const file = e.target.files[0];
     if (!file) return;
     const base64 = await fileToBase64(file);
-    setPendingImage(base64);
-    setPendingImagePreview(URL.createObjectURL(file));
+    setCharts(prev => ({ ...prev, [slot]: base64 }));
+    setChartPreviews(prev => ({ ...prev, [slot]: URL.createObjectURL(file) }));
   };
 
   const sendMessage = async (text) => {
     const userText = text || input.trim();
-    if ((!userText && !pendingImage) || isLoading) return;
+    const hasCharts = Object.values(charts).some(v => v);
+    if ((!userText && !hasCharts) || isLoading) return;
     setInput('');
 
-    const userContent = pendingImage
-      ? [
-          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: pendingImage } },
-          { type: 'text', text: userText || "Analyze this chart using TJR's strategy. Where is price most likely to go and why?" },
-        ]
-      : userText;
+    const imageBlocks = Object.entries(charts)
+      .filter(([, b64]) => b64)
+      .map(([, b64]) => ({
+        type: 'image',
+        source: { type: 'base64', media_type: 'image/png', data: b64 },
+      }));
 
+    const defaultAnalysis = 'Run TJR full checklist on all 3 timeframes. Give TAKE TRADE or SKIP verdict with confidence level. Then describe exactly where price is likely to go, target levels, and why. End your response with a JSON block formatted like this so the UI can render a price visual:\n```json\n{"direction":"bullish","currentPrice":0,"target":0,"stopLoss":0,"confidence":"HIGH","reason":"one sentence"}\n```';
+    const labelBlock = {
+      type: 'text',
+      text: 'Chart order: 4H first, 1H second, 5min third. ' + (userText || defaultAnalysis),
+    };
+
+    const userContent = imageBlocks.length > 0 ? [...imageBlocks, labelBlock] : userText;
     const userMsg = { role: 'user', content: userContent };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setIsLoading(true);
-    setPendingImage(null);
-    setPendingImagePreview(null);
+    setCharts({ h4: null, h1: null, m5: null });
+    setChartPreviews({ h4: null, h1: null, m5: null });
 
     const conversationHistory = newMessages.map((m) => ({
       role: m.role,
@@ -114,7 +140,7 @@ function App() {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
+          max_tokens: 1500,
           system: TJR_SYSTEM_PROMPT,
           messages: conversationHistory,
         }),
@@ -202,8 +228,12 @@ function App() {
                         block.type === 'text' ? <span key={j}>{block.text}</span> :
                         block.type === 'image' ? <img key={j} src={`data:image/png;base64,${block.source.data}`} alt="chart" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8, display: 'block' }} /> : null
                       )
-                    : m.content}
+                    : cleanText(m.content)}
                 </div>
+                {m.role === 'assistant' && (() => {
+                  const visual = extractVisual(typeof m.content === 'string' ? m.content : '');
+                  return visual ? <PriceVisual data={visual} /> : null;
+                })()}
               </div>
             ))}
             {isLoading && (
@@ -222,28 +252,48 @@ function App() {
       </main>
 
       <footer className="input-bar">
-        {pendingImagePreview && (
-          <div className="image-preview">
-            <img src={pendingImagePreview} alt="chart" />
-            <button className="remove-img" onClick={() => { setPendingImage(null); setPendingImagePreview(null); }}>✕</button>
-          </div>
-        )}
+        <div className="chart-slots">
+          {CHART_SLOTS.map(({ key, label }) => (
+            <div
+              key={key}
+              className={`chart-slot${activeSlot === key ? ' active' : ''}${chartPreviews[key] ? ' filled' : ''}`}
+              onClick={() => setActiveSlot(activeSlot === key ? null : key)}
+            >
+              {chartPreviews[key] ? (
+                <>
+                  <img src={chartPreviews[key]} alt={label} />
+                  <button className="remove-img" onClick={(e) => {
+                    e.stopPropagation();
+                    setCharts(prev => ({ ...prev, [key]: null }));
+                    setChartPreviews(prev => ({ ...prev, [key]: null }));
+                  }}>✕</button>
+                  <span className="slot-label">{label}</span>
+                </>
+              ) : (
+                <>
+                  <span className="slot-icon">📊</span>
+                  <span className="slot-label">{label}</span>
+                  <span className="slot-hint">{activeSlot === key ? 'Ctrl+V to paste' : 'Click to select'}</span>
+                </>
+              )}
+              <label className="slot-upload">
+                <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, key)} style={{ display: 'none' }} />
+              </label>
+            </div>
+          ))}
+        </div>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe your setup — or paste/upload a chart image..."
+          placeholder="Add context — asset, session, notes... (optional if charts attached)"
           rows={1}
           disabled={isLoading}
         />
-        <label className="upload-btn" title="Upload chart image">
-          📎
-          <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-        </label>
         <button
           className="send-btn"
           onClick={() => sendMessage()}
-          disabled={isLoading || (!input.trim() && !pendingImage)}
+          disabled={isLoading || (Object.values(charts).every(v => !v) && !input.trim())}
         >
           Send
         </button>
